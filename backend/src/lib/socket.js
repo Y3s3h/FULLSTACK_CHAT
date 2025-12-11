@@ -43,23 +43,20 @@ import express from "express";
 const app = express();
 const server = http.createServer(app);
 
-// Store online users
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:5173", "https://chatguldhar.vercel.app"],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+// used to store online users
 const userSocketMap = {}; // { userId: socketId }
 
 export function getReceiverSocketId(userId) {
   return userSocketMap[userId];
 }
-
-const io = new Server(server, {
-  cors: {
-    origin: [
-      "http://localhost:5173",
-      "https://chatguldhar.vercel.app", // your Vercel domain
-    ],
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
@@ -67,11 +64,9 @@ io.on("connection", (socket) => {
   const userId = socket.handshake.query.userId;
   if (userId) userSocketMap[userId] = socket.id;
 
-  // send online users to all clients
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
   socket.on("disconnect", () => {
-    console.log("A user disconnected:", socket.id);
     delete userSocketMap[userId];
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
   });
